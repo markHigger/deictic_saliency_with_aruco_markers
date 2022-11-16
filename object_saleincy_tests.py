@@ -5,16 +5,18 @@ from object_saliency_from_aruco import *
 
 def single_image_test(image_path):
     img = cv2.imread(image_path)
-    param = Parameters()
+    param = SceneParameters()
     param.calculate_k(img.shape[1], img.shape[0], 30)
     aruco_pose_test(img, param)
+    calculate_arm_pose_test(img, param)
     cv2.waitKey(0)
     pass
 
 
 def aruco_pose_test(image, params):
     aruco_pose(image, params)
-    # DEBUG: Show images for debug
+
+    # Show images for debug
     img_debug = image.copy()
 
     if params.arm.rvec is not None:
@@ -23,16 +25,26 @@ def aruco_pose_test(image, params):
     if params.hand.rvec is not None:
         cv2.aruco.drawAxis(img_debug, params.K, None, params.hand.rvec, params.hand.tvec, 3)
 
-    for object_in_scene in params.object_array:
-        if object_in_scene.rvec is not None:
-            cv2.aruco.drawAxis(img_debug, params.K, None, object_in_scene.rvec, object_in_scene.tvec, 3)
+    for game in params.game_list:
+        if game.rvec is not None:
+            cv2.aruco.drawAxis(img_debug, params.K, None, game.rvec, game.tvec, 3)
 
     cv2.imshow('DEBUG: ARUCO Axes', img_debug)
 
     pass
 
 
-def calculate_arm_pose_test():
+def calculate_arm_pose_test(img, param):
+    calculate_arm_pose(param)
+    # unit_vector_pixels = param.homgenous_3d_to_camera_pixels(param.gesture_unit_vector)
+    p1 = param.gesture_origin_pixels
+    vector_size = 500
+    p2 = p1 + vector_size * param.gesture_unit_vector_2d
+
+    p1 = (int(p1[0]), int(p1[1]))
+    p2 = (int(p2[0]), int(p2[1]))
+    cv2.line(img, p1, p2, (255, 0, 0), 10)
+    cv2.imshow('Pointing Vector', img)
     pass
 
 
@@ -41,7 +53,7 @@ def calculate_object_vectors_test():
 
 
 if __name__ == "__main__":
-    image_path = "test_data/IMG_1070.jpg"
+    image_path = "test_data/IMG_1056.jpg"
     single_image_test(image_path)
     pass
 
