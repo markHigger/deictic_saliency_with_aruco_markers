@@ -88,11 +88,7 @@ def aruco_pose(image_frame, params):
                 if marker_id == scene_object.aruco_id:
                     scene_object.set_pose(marker_pos, params.K)
 
-    # DEBUG: Show images for debug
-    img_debug = image_frame.copy()
-    cv2.aruco.drawDetectedMarkers(img_debug, markers_pos)
-    cv2.imshow('DEBUG: ARUCO', img_debug)
-    cv2.waitKey(0)
+
 
 
 def calculate_arm_pose(arm_and_hand_poses):
