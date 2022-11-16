@@ -41,7 +41,7 @@ def calculate_object_vectors_test():
 
 
 if __name__ == "__main__":
-    image_path = "test_data/IMG_1048.jpg"
+    image_path = "test_data/IMG_1070.jpg"
     single_image_test(image_path)
     pass
 

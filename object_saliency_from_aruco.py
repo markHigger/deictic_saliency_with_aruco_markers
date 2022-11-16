@@ -10,16 +10,32 @@ class Object:
         self.marker_length = marker_length  # real size of marker in centimeters
         self.rect = None  # position boundries of aruco tag in pixel space
 
-        #  Probably combine rvec and tvec into a single honogoneous transform
+        #  rvec and tvec can be used directly for aruco functions
         self.rvec = None  # pose rvec
         self.tvec = None  # pose tvec
 
+        # H is used for coordinate transforms
+        self.H = None
+
     def set_pose(self, position, K):
+
+        # Marker boundry positions
         self.rect = position
+
+        # find rodregues and translation vectors of a marker
         rvec_marker, tvec_marker, _ = \
             cv2.aruco.estimatePoseSingleMarkers(position, self.marker_length, K, None)
+        rvec_marker = rvec_marker[0][0]
+        tvec_marker = tvec_marker[0][0]
         self.rvec = rvec_marker
         self.tvec = tvec_marker
+
+        # convert to homogounous matrix
+        R, _ = cv2.Rodrigues(rvec_marker)
+        t = np.matrix(tvec_marker).T
+        H = np.concatenate([R, t], 1)
+        H = np.concatenate([H, np.matrix([0, 0, 0, 1])], 0)
+        self.H = H
 
 
 class Parameters:
@@ -114,6 +130,8 @@ def find_salient_object(object_vectors, arm_direction):
     :param arm_direction: unit vector of arm pointing
     :return: index of object that is being pointed to
     """
+    # Use cosine similarity to find most similar angles
+    # Similarity = (A.B) / (| | A | |.| | B | |)
     pass
 
 
