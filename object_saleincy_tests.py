@@ -2,11 +2,18 @@ import cv2
 import numpy as np
 from object_saliency_from_aruco import *
 
+def fov_test(image_path):
+    img = cv2.imread(image_path)
+    param = SceneParameters()
+    param.calculate_k(img.shape[1], img.shape[0], 35)
+    aruco_pose_test(img, param)
+    pass
+
 
 def single_image_test(image_path):
     img = cv2.imread(image_path)
     param = SceneParameters()
-    param.calculate_k(img.shape[1], img.shape[0], 30)
+    param.calculate_k(img.shape[1], img.shape[0], 40)
     aruco_pose_test(img, param)
     calculate_arm_pose_test(img, param)
     cv2.waitKey(0)
@@ -36,14 +43,12 @@ def aruco_pose_test(image, params):
 
 def calculate_arm_pose_test(img, param):
     calculate_arm_pose(param)
-    # unit_vector_pixels = param.homgenous_3d_to_camera_pixels(param.gesture_unit_vector)
     p1 = param.gesture_origin_pixels
-    vector_size = 500
-    p2 = p1 + vector_size * param.gesture_unit_vector_2d
+    p2 = param.point_line
 
     p1 = (int(p1[0]), int(p1[1]))
     p2 = (int(p2[0]), int(p2[1]))
-    cv2.line(img, p1, p2, (255, 0, 0), 10)
+    cv2.line(img, p1, p2, (0, 0, 255), 20)
     cv2.imshow('Pointing Vector', img)
     pass
 
@@ -53,7 +58,9 @@ def calculate_object_vectors_test():
 
 
 if __name__ == "__main__":
-    image_path = "test_data/IMG_1056.jpg"
+    image_path = "test_data/IMG_1052.jpg"
+    # image_path = "test_data/single_marker.jpg"
+    # fov_test(image_path)
     single_image_test(image_path)
     pass
 
