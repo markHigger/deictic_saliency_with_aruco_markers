@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import scipy.spatial.transform as sci_trans
 
 
 class SceneObject:
@@ -21,6 +22,8 @@ class SceneObject:
         self.R_object2world = None
         self.H_object2world = None
 
+        self.R_gesture2Object = None
+
     def set_pose(self, position, params):
 
         # Marker boundry positions
@@ -38,9 +41,29 @@ class SceneObject:
         R_aruco2world, _ = cv2.Rodrigues(rvec_marker)
         t = np.matrix(tvec_marker).T
         H_aruco2world = params.make_homogenous_transform(R_aruco2world, t)
-        self.H_object2world = H_aruco2world @ self.H_aruco2Object
-        self.R_object2world = self.H_object2world[0:4, 0:4]
+        self.H_object2world = H_aruco2world @ np.linalg.inv(self.H_aruco2Object)
+        self.R_object2world = self.H_object2world[0:3, 0:3]
 
+    def calculate_gesture_to_object_rotation(self, gesture_origin, gesture_unit_vector):
+        pos_diff = np.matrix(self.tvec).T - gesture_origin[0:3]
+        object_unit_vector = pos_diff / np.linalg.norm(pos_diff)
+        # Rotation math
+        a = np.squeeze(np.asarray(object_unit_vector))
+        b = np.squeeze(np.asarray(gesture_unit_vector))
+        v = np.cross(a, b)
+        c = np.dot(a, b.T)
+        s = np.linalg.norm(v)
+        kmat = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
+        R = np.eye(3) + kmat + kmat.dot(kmat) * ((1 - c) / (s ** 2))
+        # R, _ = sci_trans.Rotation.align_vectors(gesture_unit_vector.T, object_unit_vector.T)
+        # R, _ = sci_trans.Rotation.align_vectors( object_unit_vector.T,gesture_unit_vector.T)
+        # R = R.as_matrix()
+        # R = np.identity(3)
+        self.R_gesture2Object = R
+        pass
+
+    def calculate_differnce(self, params):
+        pass
 
 class SceneParameters:
     """
@@ -59,7 +82,7 @@ class SceneParameters:
         self.arm = SceneObject('Arm', 965, self.marker_length)
         self.arm.H_aruco2Object = np.matrix([[-1, 0, 0, 0],
                                                [0, 1, 0, 0],
-                                               [0, 0, -1, 0],
+                                               [0, 0, -1, -4],
                                                [0, 0, 0, 1]])
         # self.arm = SceneObject('Arm', 756, self.marker_length)
         self.game_list = []  # List of objects in the scene
@@ -109,7 +132,7 @@ class SceneParameters:
     def set_gesture_origin(self, origin_3d, H_gesture2world):
         self.gesture_origin_3d = origin_3d
         self.gesture_origin_pixels = self.homgenous_3d_to_camera_pixels(origin_3d)
-        self.gesture_R = H_gesture2world[0:4][0:4]
+        self.gesture_R = H_gesture2world[0:3,0:3]
         self.gesture_H = H_gesture2world
         pointing_vector_bf = np.matrix([1000, 0, 0]).T
         self.point_line = self.gesture_H @ self.make_homogenous(pointing_vector_bf)
@@ -217,21 +240,15 @@ def calculate_arm_pose(params):
         print('No gesture is detected')
 
 
-def calculate_object_vectors(params):
-    """
-    :param object_poses: list of the pose for each object
-    :param arm_position: position of the arm
-    :return: list of unit vectors for each object
-    """
-    pass
-
-
-def find_salient_object(object_vectors, arm_direction):
+def find_salient_object(params):
     """
     :param object_vectors: list of unit vectors for each object
     :param arm_direction: unit vector of arm pointing
     :return: index of object that is being pointed to
     """
+    for game in params.game_list:
+        game.calculate_gesture_to_object_rotation(params.gesture_origin_3d,
+                                                  params.gesture_R * np.matrix([1, 0, 0]).T)
     # Use cosine similarity to find most similar angles
     # Similarity = (A.B) / (| | A | |.| | B | |)
     pass
