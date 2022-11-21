@@ -133,7 +133,7 @@ class SceneParameters:
         self.gesture_origin_pixels = self.homgenous_3d_to_camera_pixels(origin_3d)
         self.gesture_R = H_gesture2world[0:3,0:3]
         self.gesture_H = H_gesture2world
-        pointing_vector_bf = np.matrix([1000, 0, 0]).T
+        pointing_vector_bf = np.matrix([200, 0, 0]).T
         self.point_line = self.gesture_H @ self.make_homogenous(pointing_vector_bf)
         self.point_line = self.homgenous_3d_to_camera_pixels(self.point_line)
         pass

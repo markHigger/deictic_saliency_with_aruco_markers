@@ -14,7 +14,7 @@ def fov_test(image_path):
 def single_image_test(image_path):
     img = cv2.imread(image_path)
     param = SceneParameters()
-    param.calculate_k(img.shape[1], img.shape[0], 35)
+    param.calculate_k(img.shape[1], img.shape[0], 45)
     aruco_pose_test(img, param)
     calculate_arm_pose_test(img, param)
     find_salient_object_test(img, param)
@@ -83,11 +83,11 @@ def calculate_object_vectors_test():
 
 
 if __name__ == "__main__":
-    image_path = "test_data/IMG_1069.jpg"
-    # image_path = "test_data/IMG_1048.jpg"
+    # image_path = "test_data/IMG_1069.jpg"
+    # image_path = "test_data/IMG_1048.jpg"  # Broken (No Arm)
     # image_path = "test_data/IMG_1066.jpg"
-    # image_path = "test_data/IMG_1056.jpg"
-    # image_path = "test_data/IMG_1070.jpg"
+    image_path = "test_data/IMG_1056.jpg"
+    # image_path = "test_data/IMG_1070.jpg"  # Incorrect?
     # image_path = "test_data/IMG_1052.jpg"
     # image_path = "test_data/IMG_1067.jpg"
     # image_path = "test_data/single_marker.jpg"
