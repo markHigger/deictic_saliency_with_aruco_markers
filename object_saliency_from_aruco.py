@@ -6,25 +6,37 @@ import scipy.spatial.transform as sci_trans
 class SceneObject:
 
     def __init__(self, name, aruco_id, marker_length):
+        # Sets the initialization peramters the object
         self.name = name
         self.aruco_id = aruco_id
         self.marker_length = marker_length  # real size of marker in centimeters
-        self.rect = None  # position boundries of aruco tag in pixel space
 
+        '''Must be manually defined outside self'''
+        self.H_aruco2Object = None
+
+        ''' Filled out in self.set_pose'''
+        # bounding box (in pixel-space) of the aruco tag associated with object
+        self.rect = None  # position boundries of aruco tag in pixel space
         #  rvec and tvec can be used directly for aruco functions
         self.rvec = None  # pose rvec
         self.tvec = None  # pose tvec
 
         # R is ratoation matrix used for arm and hand unit vectors
         # H is homogenous transformation matrix used for coordinate transforms
-        self.R_aruco2Object = None #manually defined
-        self.H_aruco2Object = None
         self.R_object2world = None
         self.H_object2world = None
 
+        ''' calculated in self.calculate_gesture_to_object_rotation'''
+        # Rotation between gesture direction and the direction from gesture to object
         self.R_gesture2Object = None
 
     def set_pose(self, position, params):
+        """
+        Sets the pose and related object perameterers of an object in the scene from aruco tags
+        :param position: list of 4 2d pixel poses (ints) of the bouding boxes of the aruco marker
+        :param params: Scene Parameters object used for camera peramters and supporting functions
+        :return:
+        """
 
         # Marker boundry positions
         self.rect = position
@@ -45,7 +57,12 @@ class SceneObject:
         self.R_object2world = self.H_object2world[0:3, 0:3]
 
     def calculate_gesture_to_object_rotation(self, gesture_origin, gesture_unit_vector):
-
+        """
+        Calculates the rotation matrix between the gesture pointing direction and the direction of the gesture to a particular object
+        :param gesture_origin: 4x1 np matrix of homogenous coordinates in real 3d space (camera frame)
+        :param gesture_unit_vector: 3x1 np matrix of the normalized pointing direction of the gesture
+        :return: R_gesture2Object the 3x3 np matrix of the rotation between the actual gesture and the direction of the gesture to object
+        """
         # Find unit vector between a game and the gesture
         pos_diff = np.matrix(self.tvec).T - gesture_origin[0:3]
         object_unit_vector = pos_diff / np.linalg.norm(pos_diff)
@@ -60,9 +77,8 @@ class SceneObject:
         R = np.eye(3) + kmat + kmat.dot(kmat) * ((1 - c) / (s ** 2))
 
         self.R_gesture2Object = R
+        return R
 
-    def calculate_differnce(self, params):
-        pass
 
 class SceneParameters:
     """
@@ -129,20 +145,30 @@ class SceneParameters:
         return self.K
 
     def set_gesture_origin(self, origin_3d, H_gesture2world):
+        """
+        Sets class variables related to the gesture origin and pointing direction
+        :param origin_3d: [4x1 np matrix] - homogenous vector of the position of the origin of the gesture in 3d real space camera frame
+        :param H_gesture2world: [4 x4 np matrix] - Homogenous matrix to get from gesture frame to world frame
+        :return:
+        """
+        # Set origin position in 3d space and convert to pixel space for drawing
         self.gesture_origin_3d = origin_3d
         self.gesture_origin_pixels = self.homgenous_3d_to_camera_pixels(origin_3d)
+
+        # Set gesture to world R and H matricies
         self.gesture_R = H_gesture2world[0:3,0:3]
         self.gesture_H = H_gesture2world
+
+        # Project a point 20cm in the direction of the point in camera space
         pointing_vector_bf = np.matrix([200, 0, 0]).T
-        self.point_line = self.gesture_H @ self.make_homogenous(pointing_vector_bf)
-        self.point_line = self.homgenous_3d_to_camera_pixels(self.point_line)
-        pass
+        point_line = self.gesture_H @ self.make_homogenous(pointing_vector_bf)
+        self.point_line = self.homgenous_3d_to_camera_pixels(point_line)
 
     def make_homogenous(self, vector):
         """
         turns a 3x1 vector into a homogenous vector
-        :param vector:
-        :return:
+        :param vector: [3x1] np matrix
+        :return: vector_out [4x1] np matrix
         """
         return np.concatenate([vector, np.matrix([[1]])], axis=0)
 
@@ -158,6 +184,11 @@ class SceneParameters:
         return H
 
     def homgenous_3d_to_camera_pixels(self, vector_h3d):
+        """
+        Converts 3d homogenous vector to 2d pixel coordinates
+        :param vector_h3d: [4x1] np matrix - pre_rotated homogenous vector
+        :return:vector_2d: [2x1 np matrix] - 2d vector of vector in pixel space
+        """
         # Find arm position in camera frame
         mat_dim = np.matrix([[1, 0, 0, 0],
                              [0, 1, 0, 0],
@@ -210,8 +241,11 @@ def aruco_pose(image_frame, params):
 
 def calculate_arm_pose(params):
     """
+    Calculates Pose of gesture (origin and pointing vector) and stores them in param
+    Note: aruco_pose must first be called to find pose of aruco tags
     :param params:Parameter class object with information about the image and scene
     :return: unit vector and 3d origin point of arm
+
     """
 
     # Check if
@@ -242,8 +276,9 @@ def calculate_arm_pose(params):
 
 def find_salient_object(params):
     """
-    :param object_vectors: list of unit vectors for each object
-    :param arm_direction: unit vector of arm pointing
+    Finds which game has the most deictic saliency
+    Note: calculate_arm_pose must first be called to find gesture position and orientation in params
+    :param params: Scene parameter object which contains scene meta info
     :return: index of object that is being pointed to
     """
     r_norm_min = 10000
@@ -253,8 +288,11 @@ def find_salient_object(params):
         if game.rect is None:
             print(game.name, ' is not found')
             continue
+
+        # Find the rotation matrix between the gesture and the game unit vectors
         game.calculate_gesture_to_object_rotation(params.gesture_origin_3d,
                                                   params.gesture_R * np.matrix([1, 0, 0]).T)
+
         # Convert rotation matricies to rodregeues vectors (k*theta) for comparison
         r_vec, _ = cv2.Rodrigues(game.R_gesture2Object)
         r_norm = np.linalg.norm(r_vec)
