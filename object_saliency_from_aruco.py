@@ -45,9 +45,12 @@ class SceneObject:
         self.R_object2world = self.H_object2world[0:3, 0:3]
 
     def calculate_gesture_to_object_rotation(self, gesture_origin, gesture_unit_vector):
+
+        # Find unit vector between a game and the gesture
         pos_diff = np.matrix(self.tvec).T - gesture_origin[0:3]
         object_unit_vector = pos_diff / np.linalg.norm(pos_diff)
-        # Rotation math
+
+        # Find the rotation matrix between unit vectors
         a = np.squeeze(np.asarray(object_unit_vector))
         b = np.squeeze(np.asarray(gesture_unit_vector))
         v = np.cross(a, b)
@@ -55,12 +58,8 @@ class SceneObject:
         s = np.linalg.norm(v)
         kmat = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
         R = np.eye(3) + kmat + kmat.dot(kmat) * ((1 - c) / (s ** 2))
-        # R, _ = sci_trans.Rotation.align_vectors(gesture_unit_vector.T, object_unit_vector.T)
-        # R, _ = sci_trans.Rotation.align_vectors( object_unit_vector.T,gesture_unit_vector.T)
-        # R = R.as_matrix()
-        # R = np.identity(3)
+
         self.R_gesture2Object = R
-        pass
 
     def calculate_differnce(self, params):
         pass
@@ -214,8 +213,8 @@ def calculate_arm_pose(params):
     :param params:Parameter class object with information about the image and scene
     :return: unit vector and 3d origin point of arm
     """
-    # TODO: calibrate arm and hand pose
 
+    # Check if
     # generate unit vector
     unit_vector_x_bf = np.matrix([-1, 0, 0]).T
     origin_body_frame = np.matrix([0, 0, 0, 1]).T
@@ -238,6 +237,7 @@ def calculate_arm_pose(params):
         params.set_gesture_origin(arm_origin, params.arm.H_object2world)
     else:
         print('No gesture is detected')
+        assert(params.arm.R_object2world is not None or params.hand.R_object2world is not None)
 
 
 def find_salient_object(params):
@@ -246,12 +246,23 @@ def find_salient_object(params):
     :param arm_direction: unit vector of arm pointing
     :return: index of object that is being pointed to
     """
+    r_norm_min = 10000
+    game_min = None
+    #Find rotation matrix beween ideal gesture to object and actual gesture
     for game in params.game_list:
+        if game.rect is None:
+            print(game.name, ' is not found')
+            continue
         game.calculate_gesture_to_object_rotation(params.gesture_origin_3d,
                                                   params.gesture_R * np.matrix([1, 0, 0]).T)
-    # Use cosine similarity to find most similar angles
-    # Similarity = (A.B) / (| | A | |.| | B | |)
-    pass
+        # Convert rotation matricies to rodregeues vectors (k*theta) for comparison
+        r_vec, _ = cv2.Rodrigues(game.R_gesture2Object)
+        r_norm = np.linalg.norm(r_vec)
+        if r_norm < r_norm_min:
+            game_min = game
+            r_norm_min = r_norm
+
+    return game_min
 
 
 def highlight_object(image, aruco_id):

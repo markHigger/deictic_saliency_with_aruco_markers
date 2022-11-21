@@ -2,10 +2,11 @@ import cv2
 import numpy as np
 from object_saliency_from_aruco import *
 
+
 def fov_test(image_path):
     img = cv2.imread(image_path)
     param = SceneParameters()
-    param.calculate_k(img.shape[51], img.shape[0], 80)
+    param.calculate_k(img.shape[1], img.shape[0], 80)
     aruco_pose_test(img, param)
     pass
 
@@ -54,9 +55,11 @@ def calculate_arm_pose_test(img, param):
     pass
 
 def find_salient_object_test(img, param):
-    find_salient_object(param)
+    winner = find_salient_object(param)
     forward_vector_bf = np.matrix([1, 0, 0]).T * 200
     for game_idx, game in enumerate(param.game_list):
+        if game.R_gesture2Object is None:
+            continue
         R_op2gesture = np.linalg.inv(game.R_gesture2Object)
         # R_op2gesture = game.R_gesture2Object
         forward_vector_gf = R_op2gesture @ forward_vector_bf
@@ -71,7 +74,7 @@ def find_salient_object_test(img, param):
         cv2.line(img, p1, p2, (0, int(255/(game_idx+1)), 0), 20)
         cv2.imshow('Pointing Vector', img)
         print(game.name)
-        cv2.waitKey(0)
+    print('Closest Game: ', winner.name)
     pass
 
 
@@ -80,7 +83,13 @@ def calculate_object_vectors_test():
 
 
 if __name__ == "__main__":
-    image_path = "test_data/IMG_1070.jpg"
+    image_path = "test_data/IMG_1069.jpg"
+    # image_path = "test_data/IMG_1048.jpg"
+    # image_path = "test_data/IMG_1066.jpg"
+    # image_path = "test_data/IMG_1056.jpg"
+    # image_path = "test_data/IMG_1070.jpg"
+    # image_path = "test_data/IMG_1052.jpg"
+    # image_path = "test_data/IMG_1067.jpg"
     # image_path = "test_data/single_marker.jpg"
     # fov_test(image_path)
     single_image_test(image_path)
