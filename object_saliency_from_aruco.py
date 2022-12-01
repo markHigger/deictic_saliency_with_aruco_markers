@@ -30,6 +30,10 @@ class SceneObject:
         # Rotation between gesture direction and the direction from gesture to object
         self.R_gesture2Object = None
 
+        # Check if object is found in this frame
+        self.is_found = 0
+
+
     def set_pose(self, position, params):
         """
         Sets the pose and related object perameterers of an object in the scene from aruco tags
@@ -79,6 +83,8 @@ class SceneObject:
         self.R_gesture2Object = R
         return R
 
+    def highlight_object(self, img, K):
+        cv2.aruco.drawAxis(img, K, None, self.rvec, self.tvec, 3)
 
 class SceneParameters:
     """
@@ -87,8 +93,8 @@ class SceneParameters:
 
     def __init__(self):
         self.K = None  # Calibration matrix for camera
-        # self.marker_length = 3.5  # cm
-        self.marker_length = 17
+        self.marker_length = 3.5  # cm
+        # self.marker_length = 17
         self.hand = SceneObject('Hand', 876, self.marker_length)
         self.hand.H_aruco2Object = np.matrix([[1, 0, 0, 0],
                                                [0, 1, 0, 0],
@@ -97,7 +103,7 @@ class SceneParameters:
         self.arm = SceneObject('Arm', 965, self.marker_length)
         self.arm.H_aruco2Object = np.matrix([[-1, 0, 0, 0],
                                                [0, 1, 0, 0],
-                                               [0, 0, -1, -4],
+                                               [0, 0, -1, 0],
                                                [0, 0, 0, 1]])
         # self.arm = SceneObject('Arm', 756, self.marker_length)
         self.game_list = []  # List of objects in the scene
@@ -129,6 +135,8 @@ class SceneParameters:
         self.gesture_H = None
         self.point_line = None
 
+        self.salient_game = None
+
     def calculate_k(self, im_width, im_height, fov):
         """
         Creates camera calibration Matrix from input permatmers
@@ -138,9 +146,9 @@ class SceneParameters:
         :return: K: calibration parameter (also stored in self)
 
         """
-        f_pixels = int((im_height/ 2) / np.tan(np.deg2rad(fov)))
-        c_x = int(im_width / 2)
-        c_y = int(im_height / 2)
+        f_pixels = (im_height/ 2) / np.tan(np.deg2rad(fov))
+        c_x = im_width / 2
+        c_y = im_height / 2
         self.K = np.matrix([[f_pixels, 0, c_x], [0, f_pixels, c_y], [0, 0, 1]]).astype(float)
         return self.K
 
@@ -160,7 +168,7 @@ class SceneParameters:
         self.gesture_H = H_gesture2world
 
         # Project a point 20cm in the direction of the point in camera space
-        pointing_vector_bf = np.matrix([200, 0, 0]).T
+        pointing_vector_bf = np.matrix([33, 0, 0]).T
         point_line = self.gesture_H @ self.make_homogenous(pointing_vector_bf)
         self.point_line = self.homgenous_3d_to_camera_pixels(point_line)
 
@@ -213,28 +221,38 @@ def aruco_pose(image_frame, params):
             "ERROR: K is not initialized in params please initialize camera calibration matrix with 'Perameters.calculate_k()'"
                % e))
 
+    #default Found to False
+    params.arm.is_found = False
+    params.hand.is_found = False
+    for game in params.game_list:
+        game.is_found = False
     #  Use standard Aruco library
     aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_ARUCO_ORIGINAL)
     # Detect aruco markers in image
     markers_pos, markers_id, rejected = cv2.aruco.detectMarkers(image_frame, aruco_dict)
     # Set Poses for each marker found
-    for marker_idx, marker_id in enumerate(markers_id):
-        marker_id = marker_id[0]
-        marker_pos = markers_pos[marker_idx]
+    if markers_id is not None:
 
-        # Set arm pose if marker is found
-        if marker_id == params.arm.aruco_id:
-            params.arm.set_pose(marker_pos, params)
+        for marker_idx, marker_id in enumerate(markers_id):
+            marker_id = marker_id[0]
+            marker_pos = markers_pos[marker_idx]
 
-        # Set hand pose if marker is found
-        elif marker_id == params.hand.aruco_id:
-            params.hand.set_pose(marker_pos, params)
+            # Set arm pose if marker is found
+            if marker_id == params.arm.aruco_id:
+                params.arm.set_pose(marker_pos, params)
+                params.arm.is_found = True
 
-        # Loop through scene objects and set pose for each object detected
-        else:
-            for game in params.game_list:
-                if marker_id == game.aruco_id:
-                    game.set_pose(marker_pos, params)
+            # Set hand pose if marker is found
+            elif marker_id == params.hand.aruco_id:
+                params.hand.set_pose(marker_pos, params)
+                params.hand.is_found = True
+
+            # Loop through scene objects and set pose for each object detected
+            else:
+                for game in params.game_list:
+                    if marker_id == game.aruco_id:
+                        game.set_pose(marker_pos, params)
+                        game.is_found = True
 
 
 
@@ -253,15 +271,15 @@ def calculate_arm_pose(params):
     unit_vector_x_bf = np.matrix([-1, 0, 0]).T
     origin_body_frame = np.matrix([0, 0, 0, 1]).T
 
-    if params.arm.R_object2world is not None and params.hand.R_object2world is not None:
-        # TODO handle case where hand is present
-        print('case where hand is present is not defined yet')
+    # if params.arm.is_found and params.hand.is_found is not None:
+    #     # TODO handle case where hand is present
+    #     print('case where hand is present is not defined yet')
+    #
+    # elif params.hand.is_found is not None:
+    #     # TODO handle case where hand is present
+    #     print('case where hand is present is not defined yet')
 
-    elif params.hand.R_object2world is not None:
-        # TODO handle case where hand is present
-        print('case where hand is present is not defined yet')
-
-    elif params.arm.R_object2world is not None:
+    if params.arm.is_found is not None:
         # Find arm unit vector
         # arm_vector_x = params.arm.R @ unit_vector_x_bf
         # arm_vector_x = arm_vector_x / np.linalg.norm(arm_vector_x)
@@ -271,7 +289,7 @@ def calculate_arm_pose(params):
         params.set_gesture_origin(arm_origin, params.arm.H_object2world)
     else:
         print('No gesture is detected')
-        assert(params.arm.R_object2world is not None or params.hand.R_object2world is not None)
+        # assert(params.arm.R_object2world is not None or params.hand.R_object2world is not None)
 
 
 def find_salient_object(params):
@@ -281,12 +299,19 @@ def find_salient_object(params):
     :param params: Scene parameter object which contains scene meta info
     :return: index of object that is being pointed to
     """
+
+
     r_norm_min = 10000
     game_min = None
+
+    if params.arm.is_found is False:
+        params.salient_game = None
+        return game_min, r_norm_min
+
     #Find rotation matrix beween ideal gesture to object and actual gesture
     for game in params.game_list:
-        if game.rect is None:
-            print(game.name, ' is not found')
+        if game.is_found is False:
+            # print(game.name, ' is not found')
             continue
 
         # Find the rotation matrix between the gesture and the game unit vectors
@@ -299,15 +324,7 @@ def find_salient_object(params):
         if r_norm < r_norm_min:
             game_min = game
             r_norm_min = r_norm
-
-    return game_min
-
-
-def highlight_object(image, aruco_id):
-    """
-    :param image: bgr image frame to draw on
-    :param aruco_id: id of object to highlight
-    :return:
-    """
-    pass
+    if r_norm_min < 0.3:
+        params.salient_game = game_min
+    return game_min, r_norm_min
 
