@@ -27,8 +27,8 @@ def video_test(video_path):
 
     # Run base parameters with scene
     scene_video = SceneParameters()
-    scene_video.calculate_k(frame_width, frame_height, 40)
-    # scene_video.calculate_k(frame_width, frame_height, 20)
+    # scene_video.calculate_k(frame_width, frame_height, 40)
+    scene_video.calculate_k(frame_width, frame_height, 20)
 
 
     while cap.isOpened():
@@ -75,6 +75,8 @@ def single_image_test(image_path):
 
     # Find which object is being pointed at
     find_salient_object_test(img, param)
+
+    highlight_salient_object(img, param)
 
     cv2.waitKey(0)
     pass
@@ -200,9 +202,8 @@ if __name__ == "__main__":
     # video_test('test_data/IMG_1063.MOV')
     # video_test('test_data/IMG_1058.MOV')
     # video_test('test_data/IMG_1064.MOV')
-    # video_test('test_data/IMG_1061.MOV')
-    video_test('test_data/IMG_1059.MOV')
-    # video_test(0)
+    # video_test('test_data/IMG_1059.MOV')
+    video_test(0)
 
     pass
 

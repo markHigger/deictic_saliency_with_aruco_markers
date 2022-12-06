@@ -84,6 +84,9 @@ class SceneObject:
         return R
 
     def highlight_object(self, img, K):
+        corners = self.rect
+        cv2.aruco.drawDetectedMarkers(img, [corners])
+        draw_first_last_connected(img, corners[0])
         cv2.aruco.drawAxis(img, K, None, self.rvec, self.tvec, 3)
 
 class SceneParameters:
@@ -328,3 +331,7 @@ def find_salient_object(params):
         params.salient_game = game_min
     return game_min, r_norm_min
 
+
+def draw_first_last_connected(img, points):
+    for idx in range(len(points)):
+        cv2.line(img, points[idx-1].astype(int), points[idx].astype(int), (0, 255, 0), thickness=20)
