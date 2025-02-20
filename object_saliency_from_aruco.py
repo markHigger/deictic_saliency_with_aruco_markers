@@ -207,6 +207,8 @@ class SceneParameters:
         vector_2d = self.K @ mat_dim @ vector_h3d
         vector_2d = vector_2d[0:2] / vector_2d[2]
         return vector_2d.astype(int)
+
+
 def aruco_pose(image_frame, params):
     """
     Detects all aruco markers and poses in an image
@@ -327,7 +329,7 @@ def find_salient_object(params):
         if r_norm < r_norm_min:
             game_min = game
             r_norm_min = r_norm
-    if r_norm_min < 0.3:
+    if r_norm_min < 0.5:
         params.salient_game = game_min
     return game_min, r_norm_min
 

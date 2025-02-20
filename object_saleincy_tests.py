@@ -27,8 +27,8 @@ def video_test(video_path):
 
     # Run base parameters with scene
     scene_video = SceneParameters()
-    # scene_video.calculate_k(frame_width, frame_height, 40)
-    scene_video.calculate_k(frame_width, frame_height, 20)
+    scene_video.calculate_k(frame_width, frame_height, 40)
+    # scene_video.calculate_k(frame_width, frame_height, 20)
 
 
     while cap.isOpened():
@@ -58,6 +58,7 @@ def single_image_test(image_path):
     :param image_path: string - image file name
     :return:
     """
+    print(image_path)
     # read image
     img = cv2.imread(image_path)
 
@@ -189,21 +190,40 @@ def highlight_salient_object(img, scene_params):
     cv2.imshow('Deictic Saliency', img)
 
 if __name__ == "__main__":
-    # image_path = "test_data/IMG_1069.jpg"
-    # image_path = "test_data/IMG_1048.jpg"  # Broken (No Arm)
-    # image_path = "test_data/IMG_1066.jpg"
-    # image_path = "test_data/IMG_1056.jpg"
-    # image_path = "test_data/IMG_1070.jpg"  # Incorrect?
-    # image_path = "test_data/IMG_1052.jpg"
-    # image_path = "test_data/IMG_1067.jpg"
-    # image_path = "test_data/single_marker.jpg"
-    # fov_test(image_path)
+
+    # Wrong Direction
+    # single_image_test('test_data/IMG_1045.jpg')
+    # single_image_test('test_data/IMG_1046.jpg')
+    # single_image_test('test_data/IMG_1047.jpg')
+    # image_path = "testq_data/IMG_1048.jpg"  # Broken (No Arm)
     # single_image_test(image_path)
+    # single_image_test('test_data/IMG_1049.jpg')
+    # single_image_test('test_data/IMG_1050.jpg')
+    # single_image_test('test_data/IMG_1051.jpg')
+    # image_path = "test_data/IMG_1052.jpg"
+    # single_image_test(image_path)
+    # single_image_test('test_data/IMG_1053.jpg')
+    # single_image_test('test_data/IMG_1054.jpg')
+    # single_image_test('test_data/IMG_1055.jpg')
+    image_path = "test_data/IMG_1056.jpg"
+    single_image_test('test_data/IMG_1065.jpg')
+    single_image_test(image_path)
+    image_path = "test_data/IMG_1066.jpg"
+    single_image_test(image_path)
+    image_path = "test_data/IMG_1067.jpg"
+    single_image_test(image_path)
+    single_image_test('test_data/IMG_1068.jpg')
+    image_path = "test_data/IMG_1069.jpg"
+    # single_image_test(image_path)
+    # image_path = "test_data/IMG_1070.jpg"  # Incorrect?
+    # single_image_test(image_path)
+
+
     # video_test('test_data/IMG_1063.MOV')
     # video_test('test_data/IMG_1058.MOV')
     # video_test('test_data/IMG_1064.MOV')
     # video_test('test_data/IMG_1059.MOV')
-    video_test(0)
+    # video_test(0)
 
     pass
 
